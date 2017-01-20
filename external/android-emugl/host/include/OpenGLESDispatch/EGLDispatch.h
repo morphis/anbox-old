@@ -47,7 +47,7 @@ struct EGLDispatch {
 };
 
 // Initialize EGLDispatch function. Return true on success, false on failure.
-bool init_egl_dispatch();
+bool init_egl_dispatch(const char *path);
 
 // Global EGLDispatch instance. Call init_egl_dispatch() before using it.
 extern EGLDispatch s_egl;

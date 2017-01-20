@@ -33,16 +33,19 @@ GLESv1Dispatch s_gles1;
 namespace anbox {
 namespace graphics {
 namespace emugl {
-bool initialize(emugl_logger_struct log_funcs, emugl_crash_func_t crash_func) {
+bool initialize(const GLLibraries &libs, emugl_logger_struct log_funcs, emugl_crash_func_t crash_func) {
   set_emugl_crash_reporter(crash_func);
   set_emugl_logger(log_funcs.coarse);
   set_emugl_cxt_logger(log_funcs.fine);
 
-  if (!init_egl_dispatch()) return false;
+  if (!init_egl_dispatch(libs.egl_path.empty() ? nullptr : libs.egl_path.c_str()))
+    return false;
 
-  if (!gles1_dispatch_init(&s_gles1)) return false;
+  if (!gles1_dispatch_init(libs.glesv1_path.empty() ? nullptr : libs.glesv1_path.c_str(), &s_gles1))
+    return false;
 
-  if (!gles2_dispatch_init(&s_gles2)) return false;
+  if (!gles2_dispatch_init(libs.glesv2_path.empty() ? nullptr : libs.glesv2_path.c_str(), &s_gles2))
+    return false;
 
   return true;
 }

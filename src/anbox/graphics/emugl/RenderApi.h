@@ -17,6 +17,8 @@
 #ifndef RENDER_API_H
 #define RENDER_API_H
 
+#include <string>
+
 typedef void (*emugl_logger_func_t)(const char* fmt, ...);
 typedef void (*emugl_crash_func_t)(const char* format, ...);
 
@@ -28,7 +30,13 @@ typedef struct {
 namespace anbox {
 namespace graphics {
 namespace emugl {
-bool initialize(emugl_logger_struct log_funcs, emugl_crash_func_t crash_func);
+struct GLLibraries {
+  std::string egl_path;
+  std::string glesv1_path;
+  std::string glesv2_path;
+};
+
+bool initialize(const GLLibraries &libs, emugl_logger_struct log_funcs, emugl_crash_func_t crash_func);
 }  // namespace emugl
 }  // namespace graphics
 }  // namespace anbox

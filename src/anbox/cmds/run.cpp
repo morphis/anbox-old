@@ -63,6 +63,15 @@ class NullConnectionCreator : public anbox::network::ConnectionCreator<
     socket->close();
   }
 };
+
+anbox::graphics::GLRendererServer::Config::Driver gles_driver_from_string(const std::string &str) {
+  if (str.empty() || str == "translator")
+    return anbox::graphics::GLRendererServer::Config::Driver::Translator;
+  else if (str == "host")
+    return anbox::graphics::GLRendererServer::Config::Driver::Host;
+
+  BOOST_THROW_EXCEPTION(std::runtime_error("Invalid option for GLES driver provided"));
+}
 }
 
 anbox::cmds::Run::BusFactory anbox::cmds::Run::session_bus_factory() {
@@ -84,6 +93,9 @@ anbox::cmds::Run::Run(const BusFactory &bus_factory)
   flag(cli::make_flag(cli::Name{"icon"},
                       cli::Description{"Icon of the application to run"},
                       icon_));
+  flag(cli::make_flag(cli::Name{"gles-driver"},
+                      cli::Description{"Which gles driver to use. Possible are 'host' or'translator'"},
+                      gles_driver_));
 
   action([this](const cli::Command::Context &) {
     auto trap = core::posix::trap_signals_for_process(
@@ -121,8 +133,9 @@ anbox::cmds::Run::Run(const BusFactory &bus_factory)
         xdg::data().home() / "applications" / "anbox",
         xdg::data().home() / "anbox" / "icons");
 
-    auto gl_server =
-        std::make_shared<graphics::GLRendererServer>(window_manager);
+    auto gl_server = std::make_shared<graphics::GLRendererServer>(
+          graphics::GLRendererServer::Config{gles_driver_from_string(gles_driver_)},
+          window_manager);
 
     policy->set_renderer(gl_server->renderer());
 

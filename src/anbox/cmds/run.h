@@ -40,6 +40,7 @@ class Run : public cli::CommandWithFlagsAndAction {
   BusFactory bus_factory_;
   std::string desktop_file_hint_;
   std::string icon_;
+  std::string gles_driver_;
 };
 }  // namespace cmds
 }  // namespace anbox

@@ -20,9 +20,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-EGLDispatch s_egl;
+namespace {
+constexpr const char *default_egl_lib{"libEGL.so.1"};
+}
 
-#define DEFAULT_EGL_LIB EMUGL_LIBNAME("EGL_translator")
+EGLDispatch s_egl;
 
 #define RENDER_EGL_LOAD_FIELD(return_type, function_name, signature) \
     s_egl. function_name = (function_name ## _t) lib->findSymbol(#function_name);
@@ -33,11 +35,12 @@ EGLDispatch s_egl;
     if (!s_egl.function_name || !s_egl.eglGetProcAddress) \
             RENDER_EGL_LOAD_FIELD(return_type, function_name, signature)
 
-bool init_egl_dispatch()
-{
-
+bool init_egl_dispatch(const char *path) {
     const char *libName = getenv("ANDROID_EGL_LIB");
-    if (!libName) libName = DEFAULT_EGL_LIB;
+    if (!libName)
+      libName = path;
+    if (!libName)
+      libName = default_egl_lib;
 
     char error[256];
     emugl::SharedLibrary *lib = emugl::SharedLibrary::open(libName, error, sizeof(error));
@@ -45,6 +48,7 @@ bool init_egl_dispatch()
         printf("Failed to open %s: [%s]\n", libName, error);
         return NULL;
     }
+
     LIST_RENDER_EGL_FUNCTIONS(RENDER_EGL_LOAD_FIELD)
     LIST_RENDER_EGL_EXTENSIONS_FUNCTIONS(RENDER_EGL_LOAD_OPTIONAL_FIELD)
 
