@@ -44,10 +44,16 @@ static constexpr const char* option = "    --%1% %2%";
 void add_to_desc_for_flags(po::options_description& desc,
                            const std::set<cli::Flag::Ptr>& flags) {
   for (auto flag : flags) {
-    auto v = po::value<std::string>()->notifier(
-        [flag](const std::string& s) { flag->notify(s); });
-    desc.add_options()(flag->name().as_string().c_str(), v,
-                       flag->description().as_string().c_str());
+    if (flag->with_value()) {
+      auto vf = std::static_pointer_cast<cli::ValueFlag>(flag);
+      auto v = po::value<std::string>()->notifier(
+          [vf](const std::string& s) { vf->notify(s); });
+      desc.add_options()(flag->name().as_string().c_str(), v,
+                         flag->description().as_string().c_str());
+    } else {
+      desc.add_options()(flag->name().as_string().c_str(),
+                         flag->description().as_string().c_str());
+    }
   }
 }
 }
@@ -62,8 +68,16 @@ const cli::Name& cli::Flag::name() const { return name_; }
 
 const cli::Description& cli::Flag::description() const { return description_; }
 
+bool cli::Flag::is_set() const { return set_; }
+
+void cli::Flag::mark_set() { set_ = true; }
+
+bool cli::Flag::with_value() const { return false; }
+
 cli::Flag::Flag(const Name& name, const Description& description)
     : name_{name}, description_{description} {}
+
+bool cli::ValueFlag::with_value() const { return true; }
 
 cli::Command::FlagsWithInvalidValue::FlagsWithInvalidValue()
     : std::runtime_error{"Flags with invalid value"} {}
@@ -206,6 +220,11 @@ int cli::CommandWithFlagsAndAction::run(const Context& ctxt) {
       return EXIT_SUCCESS;
     }
 
+    for (auto &flag : flags_) {
+      if (vm.count(flag->name()))
+        flag->mark_set();
+    }
+
     return action_(cli::Command::Context{
         ctxt.cin, ctxt.cout,
         po::collect_unrecognized(parsed.options, po::include_positional)});
@@ -216,6 +235,14 @@ int cli::CommandWithFlagsAndAction::run(const Context& ctxt) {
   }
 
   return EXIT_FAILURE;
+}
+
+bool cli::CommandWithFlagsAndAction::is_flag_set(const Name& name) {
+  for (const auto &flag : flags_) {
+    if (flag->name() == name)
+      return flag->is_set();
+  }
+  return false;
 }
 
 void cli::CommandWithFlagsAndAction::help(std::ostream& out) {
@@ -244,3 +271,7 @@ int cli::cmd::Help::run(const Context& context) {
 }
 
 void cli::cmd::Help::help(std::ostream& out) { command.help(out); }
+
+cli::Flag::Ptr cli::make_flag(const cli::Name& name, const cli::Description& description) {
+  return std::make_shared<Flag>(name, description);
+}
