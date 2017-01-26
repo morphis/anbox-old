@@ -34,6 +34,11 @@ class Container {
     running,
   };
 
+  enum class Security {
+    Privileged,
+    Unprivileged
+  };
+
   // Start the container in background
   virtual void start(const Configuration &configuration) = 0;
 
