@@ -19,12 +19,11 @@
 
 #include <string>
 
-typedef void (*emugl_logger_func_t)(const char* fmt, ...);
-typedef void (*emugl_crash_func_t)(const char* format, ...);
+#include "emugl/common/logging.h"
 
 typedef struct {
-  emugl_logger_func_t coarse;
-  emugl_logger_func_t fine;
+  logger_t coarse;
+  logger_t fine;
 } emugl_logger_struct;
 
 namespace anbox {
@@ -36,7 +35,7 @@ struct GLLibraries {
   std::string glesv2_path;
 };
 
-bool initialize(const GLLibraries &libs, emugl_logger_struct log_funcs, emugl_crash_func_t crash_func);
+bool initialize(const GLLibraries &libs, emugl_logger_struct log_funcs, logger_t crash_func);
 }  // namespace emugl
 }  // namespace graphics
 }  // namespace anbox
