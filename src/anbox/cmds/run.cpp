@@ -90,9 +90,6 @@ anbox::cmds::Run::Run(const BusFactory &bus_factory)
   flag(cli::make_flag(cli::Name{"desktop_file_hint"},
                       cli::Description{"Desktop file hint for QtMir/Unity8"},
                       desktop_file_hint_));
-  flag(cli::make_flag(cli::Name{"icon"},
-                      cli::Description{"Icon of the application to run"},
-                      icon_));
   flag(cli::make_flag(cli::Name{"gles-driver"},
                       cli::Description{"Which gles driver to use. Possible are 'host' or'translator'"},
                       gles_driver_));
