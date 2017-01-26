@@ -30,9 +30,11 @@ namespace anbox {
 namespace container {
 class Service : public std::enable_shared_from_this<Service> {
  public:
-  static std::shared_ptr<Service> create(const std::shared_ptr<Runtime> &rt);
+  static std::shared_ptr<Service> create(const std::shared_ptr<Runtime> &rt,
+                                         const Container::Security &security);
 
-  Service(const std::shared_ptr<Runtime> &rt);
+  Service(const std::shared_ptr<Runtime> &rt,
+          const Container::Security &security);
   ~Service();
 
  private:
@@ -45,6 +47,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::atomic<int> next_connection_id_;
   std::shared_ptr<network::Connections<network::SocketConnection>> connections_;
   std::shared_ptr<Container> backend_;
+  Container::Security security_;
 };
 }  // namespace container
 }  // namespace anbox

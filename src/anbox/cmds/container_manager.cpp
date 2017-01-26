@@ -26,7 +26,11 @@ anbox::cmds::ContainerManager::ContainerManager()
     : CommandWithFlagsAndAction{
           cli::Name{"container-manager"}, cli::Usage{"container-manager"},
           cli::Description{"Start the container manager service"}} {
-  action([](const cli::Command::Context&) {
+
+  flag(cli::make_flag(cli::Name{"privileged"},
+                      cli::Description{"Run Android container in privileged mode"}));
+
+  action([&](const cli::Command::Context&) {
     auto trap = core::posix::trap_signals_for_process(
         {core::posix::Signal::sig_term, core::posix::Signal::sig_int});
     trap->signal_raised().connect([trap](const core::posix::Signal& signal) {
@@ -34,8 +38,12 @@ anbox::cmds::ContainerManager::ContainerManager()
       trap->stop();
     });
 
+    auto security = container::Container::Security::Unprivileged;
+    if (is_flag_set(cli::Name{"privileged"}))
+        security = container::Container::Security::Privileged;
+
     auto rt = Runtime::create();
-    auto service = container::Service::create(rt);
+    auto service = container::Service::create(rt, security);
 
     rt->start();
     trap->run();
