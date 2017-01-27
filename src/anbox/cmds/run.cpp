@@ -40,7 +40,8 @@
 #include "anbox/rpc/connection_creator.h"
 #include "anbox/runtime.h"
 #include "anbox/ubuntu/platform_policy.h"
-#include "anbox/wm/manager.h"
+#include "anbox/wm/multi_window_manager.h"
+#include "anbox/wm/single_window_manager.h"
 
 #include "external/xdg/xdg.h"
 
@@ -94,6 +95,9 @@ anbox::cmds::Run::Run(const BusFactory &bus_factory)
                       cli::Description{"Which gles driver to use. Possible are 'host' or'translator'"},
                       gles_driver_));
 
+  flag(cli::make_flag(cli::Name{"single-window"},
+                      cli::Description{"Start in single window mode which displays the whole Android user interface"}));
+
   action([this](const cli::Command::Context &) {
     auto trap = core::posix::trap_signals_for_process(
         {core::posix::Signal::sig_term, core::posix::Signal::sig_int});
@@ -106,6 +110,8 @@ anbox::cmds::Run::Run(const BusFactory &bus_factory)
         SystemConfiguration::instance().socket_dir(),
         SystemConfiguration::instance().input_device_dir(),
     });
+
+    bool single_window = is_flag_set(cli::Name{"single-window"});
 
     auto rt = Runtime::create();
     auto dispatcher = anbox::common::create_dispatcher_for_runtime(rt);
@@ -120,22 +126,32 @@ anbox::cmds::Run::Run(const BusFactory &bus_factory)
 
     auto android_api_stub = std::make_shared<bridge::AndroidApiStub>();
 
-    auto policy = std::make_shared<ubuntu::PlatformPolicy>(input_manager,
-                                                           android_api_stub);
+    auto display_frame = graphics::Rect::Invalid;
+    if (single_window)
+      display_frame = {0, 0, 1024, 768};
+
+    auto policy = std::make_shared<ubuntu::PlatformPolicy>(input_manager, display_frame, single_window);
     // FIXME this needs to be removed and solved differently behind the scenes
     registerDisplayManager(policy);
 
-    auto window_manager = std::make_shared<wm::Manager>(policy);
+    std::shared_ptr<wm::Manager> window_manager;
+    if (is_flag_set(cli::Name{"single-window"}))
+      window_manager = std::make_shared<wm::SingleWindowManager>(policy);
+    else
+      window_manager = std::make_shared<wm::MultiWindowManager>(policy, android_api_stub);
 
     auto launcher_storage = std::make_shared<application::LauncherStorage>(
         xdg::data().home() / "applications" / "anbox",
         xdg::data().home() / "anbox" / "icons");
 
     auto gl_server = std::make_shared<graphics::GLRendererServer>(
-          graphics::GLRendererServer::Config{gles_driver_from_string(gles_driver_)},
+          graphics::GLRendererServer::Config{gles_driver_from_string(gles_driver_), single_window},
           window_manager);
 
+    policy->set_window_manager(window_manager);
     policy->set_renderer(gl_server->renderer());
+
+    window_manager->setup();
 
     auto audio_server = std::make_shared<audio::Server>(rt, policy);
 

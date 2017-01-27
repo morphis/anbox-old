@@ -21,10 +21,11 @@
 #include <gtest/gtest.h>
 
 #include "anbox/platform/default_policy.h"
-#include "anbox/wm/manager.h"
+#include "anbox/wm/multi_window_manager.h"
 #include "anbox/wm/window_state.h"
 
 #include "anbox/graphics/layer_composer.h"
+#include "anbox/graphics/multi_window_composer_strategy.h"
 
 using namespace ::testing;
 
@@ -44,7 +45,7 @@ TEST(LayerComposer, FindsNoSuitableWindowForLayer) {
   // The default policy will create a dumb window instance when requested
   // from the manager.
   auto platform_policy = std::make_shared<platform::DefaultPolicy>();
-  auto wm = std::make_shared<wm::Manager>(platform_policy);
+  auto wm = std::make_shared<wm::MultiWindowManager>(platform_policy, nullptr);
 
   auto single_window = wm::WindowState{
       wm::Display::Id{1},
@@ -57,7 +58,7 @@ TEST(LayerComposer, FindsNoSuitableWindowForLayer) {
 
   wm->apply_window_state_update({single_window}, {});
 
-  LayerComposer composer(renderer, wm);
+  LayerComposer composer(renderer, std::make_shared<MultiWindowComposerStrategy>(wm));
 
   // A single renderable which has a different task id then the window we know
   // about
@@ -77,7 +78,7 @@ TEST(LayerComposer, MapsLayersToWindows) {
   // The default policy will create a dumb window instance when requested
   // from the manager.
   auto platform_policy = std::make_shared<platform::DefaultPolicy>();
-  auto wm = std::make_shared<wm::Manager>(platform_policy);
+  auto wm = std::make_shared<wm::MultiWindowManager>(platform_policy, nullptr);
 
   auto first_window = wm::WindowState{
       wm::Display::Id{1},
@@ -99,7 +100,7 @@ TEST(LayerComposer, MapsLayersToWindows) {
 
   wm->apply_window_state_update({first_window, second_window}, {});
 
-  LayerComposer composer(renderer, wm);
+  LayerComposer composer(renderer, std::make_shared<MultiWindowComposerStrategy>(wm));
 
   // A single renderable which has a different task id then the window we know
   // about
@@ -136,7 +137,7 @@ TEST(LayerComposer, WindowPartiallyOffscreen) {
   // The default policy will create a dumb window instance when requested
   // from the manager.
   auto platform_policy = std::make_shared<platform::DefaultPolicy>();
-  auto wm = std::make_shared<wm::Manager>(platform_policy);
+  auto wm = std::make_shared<wm::MultiWindowManager>(platform_policy, nullptr);
 
   auto window = wm::WindowState{
       wm::Display::Id{1},
@@ -149,7 +150,7 @@ TEST(LayerComposer, WindowPartiallyOffscreen) {
 
   wm->apply_window_state_update({window}, {});
 
-  LayerComposer composer(renderer, wm);
+  LayerComposer composer(renderer, std::make_shared<MultiWindowComposerStrategy>(wm));
 
   // Window is build out of two layers where one is placed inside the other
   // but the layer covering the whole window is placed with its top left
@@ -180,7 +181,7 @@ TEST(LayerComposer, PopupShouldNotCauseWindowLayerOffset) {
   // The default policy will create a dumb window instance when requested
   // from the manager.
   auto platform_policy = std::make_shared<platform::DefaultPolicy>();
-  auto wm = std::make_shared<wm::Manager>(platform_policy);
+  auto wm = std::make_shared<wm::MultiWindowManager>(platform_policy, nullptr);
 
   auto window = wm::WindowState{
       wm::Display::Id{1},
@@ -193,7 +194,7 @@ TEST(LayerComposer, PopupShouldNotCauseWindowLayerOffset) {
 
   wm->apply_window_state_update({window}, {});
 
-  LayerComposer composer(renderer, wm);
+  LayerComposer composer(renderer, std::make_shared<MultiWindowComposerStrategy>(wm));
 
   // Having two renderables where the second smaller one overlaps the bigger
   // one and goes a bit offscreen. This should be still placed correctly and
