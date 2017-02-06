@@ -44,8 +44,7 @@ static constexpr const char* option = "    --%1% %2%";
 void add_to_desc_for_flags(po::options_description& desc,
                            const std::set<cli::Flag::Ptr>& flags) {
   for (auto flag : flags) {
-    auto v = po::value<std::string>()->notifier(
-        [flag](const std::string& s) { flag->notify(s); });
+    auto v = flag->option_value();
     desc.add_options()(flag->name().as_string().c_str(), v,
                        flag->description().as_string().c_str());
   }
@@ -64,6 +63,42 @@ const cli::Description& cli::Flag::description() const { return description_; }
 
 cli::Flag::Flag(const Name& name, const Description& description)
     : name_{name}, description_{description} {}
+
+template<typename T>
+const po::value_semantic* cli::TypedFlag<T>::option_value() {
+  return po::value<std::string>()->notifier([&](const std::string& s) {
+    std::stringstream ss{s};
+    T value;
+    ss >> value;
+    value_ = value;
+  });
+}
+
+template<typename T>
+const po::value_semantic* cli::TypedReferenceFlag<T>::option_value() {
+  return po::value<std::string>()->notifier([&](const std::string& s) {
+    std::stringstream ss{s};
+    T value;
+    ss >> value;
+    value_ = value;
+  });
+}
+
+template class cli::TypedReferenceFlag<std::string>;
+
+template<typename T>
+const po::value_semantic* cli::OptionalTypedReferenceFlag<T>::option_value() {
+  return po::value<std::string>()->notifier([&](const std::string& s) {
+    std::stringstream ss{s};
+    T value;
+    ss >> value;
+    value_.get() = value;
+  });
+}
+
+const po::value_semantic* cli::BoolSwitchFlag::option_value() {
+  return po::bool_switch(&value_);
+}
 
 cli::Command::FlagsWithInvalidValue::FlagsWithInvalidValue()
     : std::runtime_error{"Flags with invalid value"} {}

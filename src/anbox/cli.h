@@ -31,6 +31,12 @@
 #include "anbox/do_not_copy_or_move.h"
 #include "anbox/optional.h"
 
+namespace boost {
+namespace program_options {
+class value_semantic;
+} // namespace program_options
+} // namespace boost
+
 namespace anbox {
 namespace cli {
 
@@ -79,12 +85,12 @@ class Flag : public DoNotCopyOrMove {
   // Safe us some typing.
   typedef std::shared_ptr<Flag> Ptr;
 
-  /// @brief notify announces a new value to the flag.
-  virtual void notify(const std::string& value) = 0;
   /// @brief name returns the name of the Flag.
   const Name& name() const;
   /// @brief description returns a human-readable description of the flag.
   const Description& description() const;
+
+  virtual const boost::program_options::value_semantic *option_value() = 0;
 
  protected:
   /// @brief Flag creates a new instance, initializing name and description
@@ -115,13 +121,7 @@ class TypedFlag : public Flag {
   /// @brief value returns the optional value associated with the flag.
   const Optional<T>& value() const { return value_; }
 
-  /// @brief notify tries to unwrap a value of type T from value.
-  void notify(const std::string& s) override {
-    std::stringstream ss{s};
-    T value;
-    ss >> value;
-    value_ = value;
-  }
+  const boost::program_options::value_semantic *option_value() override;
 
  private:
   Optional<T> value_;
@@ -141,21 +141,15 @@ class TypedReferenceFlag : public Flag {
   TypedReferenceFlag(const Name& name, const Description& description, T& value)
       : Flag{name, description}, value_{value} {}
 
-  /// @brief notify tries to unwrap a value of type T from value,
-  /// relying on operator>> to read from given string s.
-  void notify(const std::string& s) override {
-    std::stringstream ss{s};
-    ss >> value_.get();
-  }
+  const boost::program_options::value_semantic *option_value() override;
 
  private:
   std::reference_wrapper<T> value_;
 };
 
 /// @brief OptionalTypedReferenceFlag handles Optional<T> references, making
-/// sure that
-/// a value is always read on notify, even if the Optional<T> wasn't initialized
-/// previously.
+/// sure that a value is always read on notify, even if the Optional<T> wasn't
+/// initialized previously.
 template <typename T>
 class OptionalTypedReferenceFlag : public Flag {
  public:
@@ -165,16 +159,27 @@ class OptionalTypedReferenceFlag : public Flag {
                              Optional<T>& value)
       : Flag{name, description}, value_{value} {}
 
-  /// @brief notify tries to unwrap a value of type T from value.
-  void notify(const std::string& s) override {
-    std::stringstream ss{s};
-    T value;
-    ss >> value;
-    value_.get() = value;
-  }
+  const boost::program_options::value_semantic *option_value() override;
 
  private:
   std::reference_wrapper<Optional<T>> value_;
+};
+
+/// @brief BoolSwitchFlag describes an bool input parameter for a command.
+class BoolSwitchFlag : public Flag {
+ public:
+  typedef std::shared_ptr<BoolSwitchFlag> Ptr;
+
+  BoolSwitchFlag(const Name& name, const Description& description, bool default_value = false)
+    : Flag{name, description}, value_(default_value) {}
+
+  const boost::program_options::value_semantic *option_value() override;
+
+  /// @brief value returns the optional value associated with the flag.
+  bool value() const { return value_; }
+
+ private:
+  bool value_;
 };
 
 /// @brief Command abstracts an individual command available from the daemon.
