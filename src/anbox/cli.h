@@ -28,6 +28,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <boost/program_options.hpp>
+
 #include "anbox/do_not_copy_or_move.h"
 #include "anbox/optional.h"
 
@@ -76,38 +78,59 @@ typedef SizeConstrainedString<80> Description;
 /// @brief Flag models an input parameter to a command.
 class Flag : public DoNotCopyOrMove {
  public:
-  // Safe us some typing.
   typedef std::shared_ptr<Flag> Ptr;
 
-  /// @brief notify announces a new value to the flag.
-  virtual void notify(const std::string& value) = 0;
+  /// @brief Flag creates a new instance, initializing name and description
+  /// from the given values.
+  Flag(const Name& name, const Description& description);
+
   /// @brief name returns the name of the Flag.
   const Name& name() const;
   /// @brief description returns a human-readable description of the flag.
   const Description& description() const;
 
- protected:
-  /// @brief Flag creates a new instance, initializing name and description
-  /// from the given values.
-  Flag(const Name& name, const Description& description);
+  /// @brief is_set returns true if the flag was set and false otherwise
+  bool is_set() const;
+
+  /// @brief Mark the flag as set
+  void mark_set();
+
+  virtual bool with_value() const;
 
  private:
   Name name_;
   Description description_;
+  bool set_ = false;
+};
+
+/// @brief ValueFlag implements Flag and handles parameters passed which are
+/// processed by the implementing class.
+class ValueFlag : public Flag {
+ public:
+  typedef std::shared_ptr<ValueFlag> Ptr;
+
+  /// @brief notify announces a new value to the flag.
+  virtual void notify(const std::string& value) = 0;
+
+  bool with_value() const override;
+
+ protected:
+  ValueFlag(const Name& name, const Description& description)
+      : Flag{name, description} {}
 };
 
 /// @brief TypedFlag implements Flag relying on operator<< and operator>> to
 /// read/write values to/from strings.
 template <typename T>
-class TypedFlag : public Flag {
+class TypedValueFlag : public ValueFlag {
  public:
-  typedef std::shared_ptr<TypedFlag<T>> Ptr;
+  typedef std::shared_ptr<TypedValueFlag<T>> Ptr;
 
-  TypedFlag(const Name& name, const Description& description)
-      : Flag{name, description} {}
+  TypedValueFlag(const Name& name, const Description& description)
+      : ValueFlag{name, description} {}
 
   /// @brief value installs the given value in the flag.
-  TypedFlag& value(const T& value) {
+  TypedValueFlag& value(const T& value) {
     value_ = value;
     return *this;
   }
@@ -131,15 +154,15 @@ class TypedFlag : public Flag {
 /// convert to/from string representations,
 /// updating the given mutable reference to a value of type T.
 template <typename T>
-class TypedReferenceFlag : public Flag {
+class TypedReferenceValueFlag : public ValueFlag {
  public:
   // Safe us some typing.
-  typedef std::shared_ptr<TypedReferenceFlag<T>> Ptr;
+  typedef std::shared_ptr<TypedReferenceValueFlag<T>> Ptr;
 
   /// @brief TypedReferenceFlag initializes a new instance with name,
   /// description and value.
-  TypedReferenceFlag(const Name& name, const Description& description, T& value)
-      : Flag{name, description}, value_{value} {}
+  TypedReferenceValueFlag(const Name& name, const Description& description, T& value)
+      : ValueFlag{name, description}, value_{value} {}
 
   /// @brief notify tries to unwrap a value of type T from value,
   /// relying on operator>> to read from given string s.
@@ -157,13 +180,13 @@ class TypedReferenceFlag : public Flag {
 /// a value is always read on notify, even if the Optional<T> wasn't initialized
 /// previously.
 template <typename T>
-class OptionalTypedReferenceFlag : public Flag {
+class OptionalTypedReferenceValueFlag : public ValueFlag {
  public:
-  typedef std::shared_ptr<OptionalTypedReferenceFlag<T>> Ptr;
+  typedef std::shared_ptr<OptionalTypedReferenceValueFlag<T>> Ptr;
 
-  OptionalTypedReferenceFlag(const Name& name, const Description& description,
+  OptionalTypedReferenceValueFlag(const Name& name, const Description& description,
                              Optional<T>& value)
-      : Flag{name, description}, value_{value} {}
+      : ValueFlag{name, description}, value_{value} {}
 
   /// @brief notify tries to unwrap a value of type T from value.
   void notify(const std::string& s) override {
@@ -285,6 +308,9 @@ class CommandWithFlagsAndAction : public Command {
   int run(const Context& context) override;
   void help(std::ostream& out) override;
 
+ protected:
+  bool is_flag_set(const Name& name);
+
  private:
   std::set<Flag::Ptr> flags_;
   Action action_;
@@ -313,28 +339,31 @@ class Help : public Command {
 std::vector<std::string> args(int argc, char** argv);
 
 /// @brief make_flag returns a flag with the given name and description.
+Flag::Ptr make_flag(const Name& name, const Description& description);
+
+/// @brief make_flag returns a flag with the given name and description.
 template <typename T>
-typename TypedFlag<T>::Ptr make_flag(const Name& name,
-                                     const Description& description) {
-  return std::make_shared<TypedFlag<T>>(name, description);
+typename TypedValueFlag<T>::Ptr make_flag(const Name& name,
+                                          const Description& description) {
+  return std::make_shared<TypedValueFlag<T>>(name, description);
 }
 
 /// @brief make_flag returns a flag with the given name and description,
 /// notifying updates to value.
 template <typename T>
-typename TypedReferenceFlag<T>::Ptr make_flag(const Name& name,
+typename TypedReferenceValueFlag<T>::Ptr make_flag(const Name& name,
                                               const Description& desc,
                                               T& value) {
-  return std::make_shared<TypedReferenceFlag<T>>(name, desc, value);
+  return std::make_shared<TypedReferenceValueFlag<T>>(name, desc, value);
 }
 
 /// @brief make_flag returns a flag with the given name and description,
 /// updating the given optional value.
 template <typename T>
-typename OptionalTypedReferenceFlag<T>::Ptr make_flag(const Name& name,
+typename OptionalTypedReferenceValueFlag<T>::Ptr make_flag(const Name& name,
                                                       const Description& desc,
                                                       Optional<T>& value) {
-  return std::make_shared<OptionalTypedReferenceFlag<T>>(name, desc, value);
+  return std::make_shared<OptionalTypedReferenceValueFlag<T>>(name, desc, value);
 }
 
 }  // namespace cli
