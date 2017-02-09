@@ -170,8 +170,8 @@ class BoolSwitchFlag : public Flag {
  public:
   typedef std::shared_ptr<BoolSwitchFlag> Ptr;
 
-  BoolSwitchFlag(const Name& name, const Description& description, bool default_value = false)
-    : Flag{name, description}, value_(default_value) {}
+  BoolSwitchFlag(const Name& name, const Description& description, bool& value)
+    : Flag{name, description}, value_{value} {}
 
   const boost::program_options::value_semantic *option_value() override;
 
@@ -179,7 +179,7 @@ class BoolSwitchFlag : public Flag {
   bool value() const { return value_; }
 
  private:
-  bool value_;
+  std::reference_wrapper<bool> value_;
 };
 
 /// @brief Command abstracts an individual command available from the daemon.
@@ -342,6 +342,11 @@ typename OptionalTypedReferenceFlag<T>::Ptr make_flag(const Name& name,
   return std::make_shared<OptionalTypedReferenceFlag<T>>(name, desc, value);
 }
 
+/// @brief make_flag returns a boolean flag with the given name and description,
+/// updating the given value.
+cli::BoolSwitchFlag::Ptr make_flag(const cli::Name& name,
+                                   const cli::Description& desc,
+                                   bool& value);
 }  // namespace cli
 }  // namespace anbox
 

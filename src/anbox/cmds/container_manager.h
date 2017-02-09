@@ -32,6 +32,7 @@ class ContainerManager : public cli::CommandWithFlagsAndAction {
 
  private:
   std::string data_path_;
+  bool privileged_;
 };
 }  // namespace cmds
 }  // namespace anbox

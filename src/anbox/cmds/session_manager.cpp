@@ -63,17 +63,6 @@ class NullConnectionCreator : public anbox::network::ConnectionCreator<
     socket->close();
   }
 };
-
-std::istream& operator>>(std::istream& in, anbox::graphics::GLRendererServer::Config::Driver& driver) {
-  std::string str(std::istreambuf_iterator<char>(in), {});
-  if (str.empty() || str == "translator")
-    driver = anbox::graphics::GLRendererServer::Config::Driver::Translator;
-  else if (str == "host")
-    driver = anbox::graphics::GLRendererServer::Config::Driver::Host;
-  else
-   BOOST_THROW_EXCEPTION(std::runtime_error("Invalid GLES driver value provided"));
-  return in;
-}
 }
 
 anbox::cmds::SessionManager::BusFactory anbox::cmds::SessionManager::session_bus_factory() {

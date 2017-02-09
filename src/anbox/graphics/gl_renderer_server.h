@@ -53,4 +53,6 @@ class GLRendererServer {
 }  // namespace graphics
 }  // namespace anbox
 
+std::istream& operator>>(std::istream& in, anbox::graphics::GLRendererServer::Config::Driver& driver);
+
 #endif

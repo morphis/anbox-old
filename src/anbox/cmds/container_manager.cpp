@@ -32,7 +32,8 @@ anbox::cmds::ContainerManager::ContainerManager()
                       cli::Description{"Path where the container and its data is stored"},
                       data_path_));
   flag(cli::make_flag(cli::Name{"privileged"},
-                      cli::Description{"Run Android container in privileged mode"}));
+                      cli::Description{"Run Android container in privileged mode"},
+                      privileged_));
 
   action([&](const cli::Command::Context&) {
     auto trap = core::posix::trap_signals_for_process(
@@ -42,11 +43,13 @@ anbox::cmds::ContainerManager::ContainerManager()
       trap->stop();
     });
 
+    DEBUG("privileged %d", privileged_);
+
     if (!data_path_.empty())
       SystemConfiguration::instance().set_data_path(data_path_);
 
     auto security = container::Container::Security::Unprivileged;
-    if (is_flag_set(cli::Name{"privileged"}))
+    if (privileged_)
         security = container::Container::Security::Privileged;
 
     auto rt = Runtime::create();

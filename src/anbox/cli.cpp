@@ -21,6 +21,7 @@
 #include <boost/program_options.hpp>
 
 #include "anbox/cli.h"
+#include "anbox/graphics/gl_renderer_server.h"
 
 namespace cli = anbox::cli;
 namespace po = boost::program_options;
@@ -50,6 +51,9 @@ void add_to_desc_for_flags(po::options_description& desc,
   }
 }
 }
+
+template class cli::TypedReferenceFlag<std::string>;
+template class anbox::cli::TypedReferenceFlag<anbox::graphics::GLRendererServer::Config::Driver>;
 
 std::vector<std::string> cli::args(int argc, char** argv) {
   std::vector<std::string> result;
@@ -84,8 +88,6 @@ const po::value_semantic* cli::TypedReferenceFlag<T>::option_value() {
   });
 }
 
-template class cli::TypedReferenceFlag<std::string>;
-
 template<typename T>
 const po::value_semantic* cli::OptionalTypedReferenceFlag<T>::option_value() {
   return po::value<std::string>()->notifier([&](const std::string& s) {
@@ -97,7 +99,7 @@ const po::value_semantic* cli::OptionalTypedReferenceFlag<T>::option_value() {
 }
 
 const po::value_semantic* cli::BoolSwitchFlag::option_value() {
-  return po::bool_switch(&value_);
+  return po::bool_switch(&value_.get());
 }
 
 cli::Command::FlagsWithInvalidValue::FlagsWithInvalidValue()
@@ -279,3 +281,7 @@ int cli::cmd::Help::run(const Context& context) {
 }
 
 void cli::cmd::Help::help(std::ostream& out) { command.help(out); }
+
+cli::BoolSwitchFlag::Ptr make_flag(const cli::Name& name, const cli::Description& desc, bool& value) {
+  return std::make_shared<cli::BoolSwitchFlag>(name, desc, value);
+}
