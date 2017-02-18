@@ -1,0 +1,3 @@
+[submodule "anbox.io/themes/hugo-universal-theme"]
+	path = anbox.io/themes/hugo-universal-theme
+	url = https://github.com/devcows/hugo-universal-theme
