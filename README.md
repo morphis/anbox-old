@@ -1,4 +1,4 @@
-# Anbox
+# Anbox [![Build Status][travis-image]][travis-url] [![Gitter chat](https://badges.gitter.im/anbox/anbox.png)](https://gitter.im/anbox/anbox)
 
 Anbox is container based approach to boot a full Android system on a
 regular GNU Linux system like Ubuntu.
@@ -198,3 +198,7 @@ included.
 
 The anbox source itself, if not stated differently in the relevant source files,
 is licensed under the terms of the GPLv3 license.
+
+
+[travis-image]: https://travis-ci.org/anbox/anbox.svg?branch=master
+[travis-url]: https://travis-ci.org/anbox/anbox
