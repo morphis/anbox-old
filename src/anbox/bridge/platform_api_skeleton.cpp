@@ -19,6 +19,12 @@
 #include "anbox/application/database.h"
 #include "anbox/platform/policy.h"
 #include "anbox/wm/manager.h"
+
+// Status is already defined in X11/Xlib.h included by EGL/egl.h in wm/manager.h
+// Protobuf also defines class named Status, to avoid conflicts
+// remove the definition of Status.
+#undef Status
+
 #include "anbox/wm/window_state.h"
 #include "anbox/logger.h"
 
